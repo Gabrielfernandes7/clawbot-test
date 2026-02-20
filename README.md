@@ -8,3 +8,9 @@
     
     ```shell
     sudo docker exec -it ollama ollama pull llama3.2:1b
+    ```
+
+    ```shell
+    # Opcionalmente teste
+    sudo docker exec -it ollama ollama run llama3.2:1b
+    ```
