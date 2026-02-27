@@ -8,17 +8,5 @@ services:
       - ollama_data:/root/.ollama
     restart: unless-stopped
 
-  openclaw:
-    # image: criar um dockerfile para o openclaw
-    container_name: openclaw
-    depends_on:
-      - ollama
-    environment:
-      - OPENAI_BASE_URL=http://ollama:11434/v1
-      - OPENAI_API_KEY=ollama
-    ports:
-      - "3000:3000"
-    restart: unless-stopped
-
 volumes:
   ollama_data:

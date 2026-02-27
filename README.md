@@ -1,5 +1,14 @@
 # Clawbot - Test
 
+<center>
+    <img 
+        src="./docs/clawbot-icon.png"
+        height="100"
+        width="100"
+        style="border-radius: 20px"
+    />
+</center>
+
 1. Executar o comando do docker-compose
     ```shell
     sudo docker compose up --build
