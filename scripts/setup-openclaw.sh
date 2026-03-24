@@ -17,9 +17,7 @@ NC='\033[0m'
 
 echo -e "${CYAN}🦞 Configurando OpenClaw...${NC}"
 
-# ==============================
 # 1. Verificar dependências
-# ==============================
 
 function check_command() {
   if ! command -v "$1" &> /dev/null; then
@@ -43,9 +41,7 @@ fi
 
 echo -e "${GREEN}✅ Dependências OK${NC}"
 
-# ==============================
 # 2. Verificar instalação existente
-# ==============================
 
 if [ -d "$INSTALL_DIR" ]; then
   echo -e "${YELLOW}⚠️ OpenClaw já existe em $INSTALL_DIR${NC}"
@@ -69,9 +65,7 @@ if [ -d "$INSTALL_DIR" ]; then
   fi
 
 else
-  # ==============================
   # 3. Clonar repositório
-  # ==============================
 
   echo -e "${CYAN}📥 Baixando OpenClaw...${NC}"
 
@@ -84,9 +78,7 @@ else
   fi
 fi
 
-# ==============================
 # 4. Verificar arquivos críticos
-# ==============================
 
 cd "$INSTALL_DIR"
 
@@ -97,9 +89,7 @@ fi
 
 echo -e "${GREEN}✅ Estrutura do OpenClaw OK${NC}"
 
-# ==============================
 # 5. Subir serviços (opcional)
-# ==============================
 
 echo -e "${CYAN}🚀 Deseja iniciar o OpenClaw agora? (s/n)${NC}"
 read -r START_NOW
@@ -117,9 +107,7 @@ else
   echo -e "${YELLOW}⏭️ Inicialização ignorada${NC}"
 fi
 
-# ==============================
 # FINAL
-# ==============================
 
 echo ""
 echo -e "${GREEN}🎉 OpenClaw pronto!${NC}"

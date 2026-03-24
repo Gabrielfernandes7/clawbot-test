@@ -16,13 +16,7 @@ Entrar em **qualquer pasta** do seu computador e digitar `crabe init` para ter u
 ### 1. Primeira vez (configuração inicial)
 
 ```bash
-cd ~/Documentos/clawbot-test
-
-# Corrigir permissões e criar o comando crabe
-./fix-crabe.sh
-
-# Configurar OpenClaw + Ollama
-./setup-crabe-simples.sh
+chmod +x /scripts/setup.sh
 ```
 
 ### 2. Uso diário (o mais importante)

@@ -1,21 +1,28 @@
 #!/bin/bash
 
+set -e
+
 echo "Configurando Crabe..."
 
 CRABE_DIR="$HOME/.crabe"
+INSTALL_DIR="$HOME/.local/bin"
+PROJECT_DIR="$(pwd)"
+
 mkdir -p "$CRABE_DIR"
 
+# Config padrão
 if [ ! -f "$CRABE_DIR/config.json" ]; then
   echo '{ "model": "llama3.2:3b" }' > "$CRABE_DIR/config.json"
 fi
 
-chmod +x cli/crabe.sh
+# Garantir permissão
+chmod +x "$PROJECT_DIR/cli/crabe.sh"
 
-# Instalar comando global
-mkdir -p ~/.local/bin
-cp cli/crabe.sh ~/.local/bin/crabe
+# Criar pasta bin
+mkdir -p "$INSTALL_DIR"
 
-chmod +x ~/.local/bin/crabe
+# 🔥 USAR SYMLINK (ESSENCIAL)
+ln -sf "$PROJECT_DIR/cli/crabe.sh" "$INSTALL_DIR/crabe"
 
-echo "✅ Crabe instalado com sucesso"
-echo "👉 Reinicie o terminal se necessário"
+echo "✅ Crabe instalado corretamente (symlink)"
+echo "👉 Teste com: crabe version"
