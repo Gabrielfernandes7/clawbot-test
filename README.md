@@ -1,4 +1,15 @@
-# Clawbot - Test
+# Crabe
+
+Repositório para testar e usar **OpenClaw** 100% local com Ollama.  
+
+O objetivo é ter um agente inteligente que você chama facilmente de **qualquer pasta** do seu computador.
+
+## Como usar (fluxo recomendado)
+
+1. **Suba o Ollama** (uma vez ou automaticamente):
+    ```bash
+    ./start-ollama.sh
+    ```
 
 <p align="center">
   <img src="./docs/clawbot-icon.png" width="100" height="100">
