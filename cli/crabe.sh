@@ -15,9 +15,7 @@ DOCTOR="$BASE_DIR/scripts/doctor.sh"
 
 CONFIG_FILE="$CRABE_DIR/config.json"
 
-# =========================
 # Validações básicas
-# =========================
 function check_dependencies() {
   if ! command -v jq &> /dev/null; then
     echo "❌ jq não está instalado"
@@ -31,9 +29,7 @@ function check_dependencies() {
   fi
 }
 
-# =========================
 # Configuração
-# =========================
 function load_config() {
   LOCAL_CONFIG="$PROJECT_DIR/model.crabe.json"
   GLOBAL_CONFIG="$CRABE_DIR/config.json"
@@ -60,18 +56,14 @@ function load_config() {
   fi
 }
 
-# =========================
 # Importar módulos
-# =========================
 check_dependencies
 
 source "$CORE"
 source "$START"
 source "$DOCTOR"
 
-# =========================
 # Entrada
-# =========================
 COMMAND=$1
 
 if [ -z "$COMMAND" ]; then
