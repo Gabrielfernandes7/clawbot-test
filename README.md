@@ -122,11 +122,3 @@ Agora basta entrar na pasta do seu projeto e digitar:
 ```bash
 crabe init
 ```
-
-Quer que eu adicione alguma outra seção (ex: como usar com outros modelos, atalhos no shell, etc.)?
-```
-
-Essa versão está limpa, prática e reflete exatamente o que você quer: **crabe init** como comando principal.
-
-Se quiser, posso deixar ainda mais curta ou adicionar badges no topo.  
-O que acha? Quer alguma mudança?
