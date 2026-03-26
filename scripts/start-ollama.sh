@@ -1,11 +1,8 @@
 #!/bin/bash
-# =============================================
-# start-ollama.sh - Gerencia Ollama + escolha de modelo de código
-# =============================================
 
 set -euo pipefail
 
-# Cores
+# CORES
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -14,94 +11,104 @@ CYAN='\033[0;36m'
 PURPLE='\033[0;35m'
 NC='\033[0m'
 
-echo -e "${CYAN}🦞 Iniciando Ollama + Open-WebUI...${NC}"
+log() { echo -e "$1"; }
 
-# Verifica permissão Docker
+# INIT
+log "${CYAN}🦞 Iniciando Ollama + Open-WebUI...${NC}"
+
+# DOCKER CHECK
 if ! docker ps >/dev/null 2>&1; then
-    echo -e "${RED}❌ Erro de permissão no Docker!${NC}"
-    echo -e "${YELLOW}Rode uma vez:${NC} sudo usermod -aG docker \$USER && newgrp docker"
+    log "${RED}❌ Docker não está acessível${NC}"
+    log "${YELLOW}Execute:${NC} sudo usermod -aG docker \$USER && newgrp docker"
     exit 1
 fi
-echo -e "${GREEN}✅ Docker OK${NC}"
+log "${GREEN}✅ Docker OK${NC}"
 
-# Verifica/inicia containers
-if docker ps --filter "name=ollama-cpu" --format "{{.Names}}" | grep -q "ollama-cpu"; then
-    echo -e "${GREEN}✅ Ollama já está rodando.${NC}"
+# VALIDAR DOCKER-COMPOSE
+if [ ! -f docker-compose.yml ]; then
+    log "${RED}❌ docker-compose.yml não encontrado${NC}"
+    exit 1
+fi
+
+# SUBIR CONTAINER SE NECESSÁRIO
+if docker ps --format "{{.Names}}" | grep -q "^ollama-cpu$"; then
+    log "${GREEN}✅ Ollama já está rodando${NC}"
 else
-    echo -e "${YELLOW}⚠️  Iniciando Ollama com docker compose...${NC}"
-    if [ ! -f docker-compose.yml ]; then
-        echo -e "${RED}❌ docker-compose.yml não encontrado!${NC}"
-        exit 1
-    fi
+    log "${YELLOW}⚠️ Subindo containers...${NC}"
     docker compose up -d --remove-orphans
-    echo -e "${YELLOW}⏳ Aguardando 25 segundos...${NC}"
-    sleep 25
 fi
 
-# Testa conexão
-if curl -s http://127.0.0.1:11434/api/tags >/dev/null; then
-    echo -e "${GREEN}✅ Ollama respondendo na porta 11434${NC}"
+# ESPERA INTELIGENTE
+log "${YELLOW}⏳ Aguardando Ollama iniciar...${NC}"
+until curl -s http://127.0.0.1:11434/api/tags >/dev/null; do
+    sleep 2
+done
+log "${GREEN}✅ Ollama pronto na porta 11434${NC}"
+
+# MENU MULTI-SELEÇÃO
+echo
+log "${PURPLE}Selecione modelos de código (multi-select):${NC}"
+log "1) ${GREEN}qwen2.5-coder:7b${NC}   → Melhor geral"
+log "2) ${GREEN}deepseek-coder:6.7b${NC} → Ótimo raciocínio"
+log "3) ${GREEN}codellama:7b${NC}       → Estável"
+log "4) ${YELLOW}llama3.2:3b${NC}       → Leve"
+log "5) ${YELLOW}llama3.2:1b${NC}       → Muito leve"
+log "6) ${CYAN}Pular${NC}"
+
+echo
+read -p "Digite os números separados por espaço: " -ra choices
+
+MODELS=()
+
+for choice in "${choices[@]}"; do
+  case $choice in
+    1) MODELS+=("qwen2.5-coder:7b") ;;
+    2) MODELS+=("deepseek-coder:6.7b") ;;
+    3) MODELS+=("codellama:7b") ;;
+    4) MODELS+=("llama3.2:3b") ;;
+    5) MODELS+=("llama3.2:1b") ;;
+    6) ;;
+    *) log "${RED}Opção inválida: $choice${NC}" ;;
+  esac
+done
+
+# DOWNLOAD MODELOS
+if [ ${#MODELS[@]} -gt 0 ]; then
+    for model in "${MODELS[@]}"; do
+        log "${YELLOW}⬇ Baixando $model...${NC}"
+        docker exec ollama-cpu ollama pull "$model"
+    done
 else
-    echo -e "${RED}❌ Ollama não respondeu. Verifique: docker logs ollama-cpu${NC}"
-    exit 1
+    log "${YELLOW}Nenhum modelo selecionado${NC}"
 fi
 
-# Menu de escolha de modelo SLM para código
-echo -e "\n${PURPLE}Escolha o modelo de código (SLM) para usar com o Crabe:${NC}"
-echo -e "1) ${GREEN}qwen2.5-coder:7b${NC}   → Recomendado (rápido e bom para projetos médios)"
-echo -e "2) ${GREEN}qwen2.5-coder:14b${NC}  → Mais inteligente (usa mais RAM)"
-echo -e "3) ${GREEN}deepseek-coder-v2:16b${NC} → Excelente em raciocínio"
-echo -e "4) ${YELLOW}glm-4.7-flash${NC}     → Já está baixado (geral, não o melhor para código)"
-echo -e "5) ${YELLOW}Não baixar agora${NC} (usar o que já tenho)"
-echo -e "${CYAN}Digite o número da opção:${NC} "
-read -r choice
-
-case $choice in
-    1)
-        echo -e "${YELLOW}Baixando qwen2.5-coder:7b...${NC}"
-        docker exec ollama-cpu ollama pull qwen2.5-coder:7b
-        MODEL="qwen2.5-coder:7b"
-        ;;
-    2)
-        echo -e "${YELLOW}Baixando qwen2.5-coder:14b...${NC}"
-        docker exec ollama-cpu ollama pull qwen2.5-coder:14b
-        MODEL="qwen2.5-coder:14b"
-        ;;
-    3)
-        echo -e "${YELLOW}Baixando deepseek-coder-v2:16b...${NC}"
-        docker exec ollama-cpu ollama pull deepseek-coder-v2:16b
-        MODEL="deepseek-coder-v2:16b"
-        ;;
-    4)
-        MODEL="glm-4.7-flash"
-        ;;
-    5)
-        echo -e "${YELLOW}Pulando download.${NC}"
-        MODEL=""
-        ;;
-    *)
-        echo -e "${RED}Opção inválida. Usando qwen2.5-coder:7b${NC}"
-        docker exec ollama-cpu ollama pull qwen2.5-coder:7b
-        MODEL="qwen2.5-coder:7b"
-        ;;
-esac
-
-# Lista modelos atuais
-echo -e "\n${BLUE}📋 Modelos disponíveis:${NC}"
+# LISTAR MODELOS
+echo
+log "${BLUE}📋 Modelos disponíveis:${NC}"
 docker exec ollama-cpu ollama list
 
-echo -e "\n${GREEN}✅ Ollama pronto!${NC}"
-echo -e "   Open-WebUI: http://localhost:3000"
-if [ -n "$MODEL" ]; then
-    echo -e "   Modelo selecionado: ${PURPLE}$MODEL${NC}"
-fi
-echo -e "\n${CYAN}Próximo passo: vamos configurar o Crabe (OpenClaw) com o modelo escolhido.${NC}"
-
-# Salvar modelo no config do Crabe
+# SALVAR CONFIG NO CRABE
 CRABE_DIR="$HOME/.crabe"
 mkdir -p "$CRABE_DIR"
 
-if [ -n "$MODEL" ]; then
-    echo "{ \"model\": \"$MODEL\" }" > "$CRABE_DIR/config.json"
-    echo -e "${GREEN}💾 Modelo salvo no Crabe: $MODEL${NC}"
+if [ ${#MODELS[@]} -gt 0 ]; then
+    JSON_MODELS=$(printf '"%s",' "${MODELS[@]}" | sed 's/,$//')
+    echo "{ \"models\": [$JSON_MODELS] }" > "$CRABE_DIR/config.json"
+
+    log "${GREEN}💾 Modelos salvos no Crabe${NC}"
 fi
+
+# FINAL
+echo
+log "${GREEN}✅ Ambiente pronto!${NC}"
+log "Open-WebUI: http://localhost:3000"
+
+if [ ${#MODELS[@]} -gt 0 ]; then
+    log "Modelos ativos:"
+    for m in "${MODELS[@]}"; do
+        log "  - ${PURPLE}$m${NC}"
+    done
+fi
+
+echo
+log "${CYAN}Próximo passo: usar com Crabe${NC}"

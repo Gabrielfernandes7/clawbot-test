@@ -2,27 +2,36 @@
 
 set -e
 
-echo "🧹 Desinstalando Crabe..."
+CRABE_DIR="$HOME/.crabe"
+INSTALL_DIR="$HOME/.local/bin"
 
-# 1. Remover comando global
-if [ -f "$HOME/.local/bin/crabe" ]; then
-  rm "$HOME/.local/bin/crabe"
-  echo "✅ CLI removido (~/.local/bin/crabe)"
-else
-  echo "ℹ️ CLI não encontrado"
-fi
+case "$1" in
+  basic)
+    rm -f "$INSTALL_DIR/crabe"
+    echo "Crabe removido (CLI)"
+    ;;
+  
+  full)
+    rm -f "$INSTALL_DIR/crabe"
+    rm -rf "$CRABE_DIR"
+    echo "Crabe removido (CLI + config)"
+    ;;
+  
+  purge)
+    rm -f "$INSTALL_DIR/crabe"
+    rm -rf "$CRABE_DIR"
 
-# 2. Remover config global
-if [ -d "$HOME/.crabe" ]; then
-  rm -rf "$HOME/.crabe"
-  echo "✅ Configurações removidas (~/.crabe)"
-fi
+    sed -i '' '/.local\/bin/d' ~/.zshrc 2>/dev/null
+    sed -i '' '/.local\/bin/d' ~/.zprofile 2>/dev/null
+    sed -i '' '/.local\/bin/d' ~/.bashrc 2>/dev/null
 
-# 3. Parar containers (se existirem)
-if command -v docker &> /dev/null; then
-  echo "🐳 Parando containers..."
-  docker compose down 2>/dev/null || true
-fi
-
-echo ""
-echo "✅ Crabe desinstalado com sucesso"
+    echo "Crabe removido completamente (incluindo PATH)"
+    ;;
+  
+  *)
+    echo "Uso:"
+    echo "crabe uninstall basic   # remove CLI"
+    echo "crabe uninstall full    # remove CLI + config"
+    echo "crabe uninstall purge   # remove tudo + PATH"
+    ;;
+esac

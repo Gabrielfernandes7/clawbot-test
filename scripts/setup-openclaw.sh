@@ -2,9 +2,7 @@
 
 set -euo pipefail
 
-# ==============================
 # CONFIG
-# ==============================
 INSTALL_DIR="$HOME/.openclaw"
 REPO_URL="https://github.com/clawbot/openclaw.git"
 
