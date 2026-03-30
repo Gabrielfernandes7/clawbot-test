@@ -9,24 +9,24 @@ import (
 )
 
 var (
-	// Cores inspiradas no Claude Code (clean, moderno, suave)
-	primary   = lipgloss.NewStyle().Foreground(lipgloss.Color("#00D1FF")) // azul ciano
-	success   = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF9D")) // verde neon suave
-	warning   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFCC00")) // amarelo
-	error     = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF4D4D")) // vermelho
-	info      = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")) // cinza
+	// Cores amarelas inspiradas no Claude Code (quente, moderno e clean)
+	primary = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFCC00")) // amarelo Claude
+	success = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF9D")) // verde neon suave
+	warning = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFCC00")) // amarelo (mesmo do primary)
+	error   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF4D4D")) // vermelho
+	info    = lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")) // cinza claro
 
-	// Estilos de caixas (igual Claude)
+	// Estilos de caixas (igual Claude Code)
 	titleBox = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#00D1FF")).
+			BorderForeground(lipgloss.Color("#FFCC00")).
 			Padding(0, 2).
 			MarginBottom(1)
 
 	header = lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("#FFFFFF")).
-		Background(lipgloss.Color("#00D1FF")).
+		Foreground(lipgloss.Color("#1A1A1A")).     // texto escuro para bom contraste
+		Background(lipgloss.Color("#FFCC00")).     // fundo amarelo Claude
 		Padding(0, 1)
 
 	// Emoji + texto
@@ -35,8 +35,8 @@ var (
 
 // Init deve ser chamado no início de todo comando
 func Init() {
-	// Força cores mesmo se o terminal não detectar
-	lipgloss.SetColorProfile(lipgloss.ColorProfile())
+	// Detecta automaticamente o melhor perfil de cores do terminal (truecolor quando possível)
+	// ColorProfile() returns the current terminal's color profile
 }
 
 // Title — usado no topo de cada comando (igual Claude)
