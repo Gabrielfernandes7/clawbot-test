@@ -122,3 +122,9 @@ Agora basta entrar na pasta do seu projeto e digitar:
 ```bash
 crabe init
 ```
+
+## Libs
+
+- https://github.com/spf13/cobra
+
+- https://github.com/charmbracelet/lipgloss
