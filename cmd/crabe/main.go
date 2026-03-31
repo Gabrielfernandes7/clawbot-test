@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/Gabrielfernandes7/crabe/internal/doctor"
+	"github.com/Gabrielfernandes7/crabe/internal/initcmd"
 	"github.com/Gabrielfernandes7/crabe/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -19,8 +20,8 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(doctor.NewDoctorCmd()) // doctor
-	// Aqui vamos adicionando outros comandos no futuro: init, status, start, etc.
+	rootCmd.AddCommand(doctor.NewDoctorCmd())
+	rootCmd.AddCommand(initcmd.NewInitCmd())
 }
 
 func main() {
