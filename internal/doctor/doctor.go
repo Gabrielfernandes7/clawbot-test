@@ -60,16 +60,23 @@ func checkDockerCompose() bool {
 }
 
 func isOllamaContainerRunning() bool {
-	out, err := exec.Command(
-		"docker",
-		"ps", "--filter",
-		"name=ollama", "--filter",
-		"status=running", "--format", "{{.Names}}",
-	).CombinedOutput()
+	// Tenta primeiro sem sudo (quando o usuário está no grupo docker)
+	out, err := exec.Command("docker", "ps", "--format", "{{.Names}}|{{.Image}}").CombinedOutput()
+	if err == nil {
+		output := strings.ToLower(string(out))
+		if strings.Contains(output, "ollama") || strings.Contains(output, "alpine/ollama") {
+			return true
+		}
+	}
+
+	// Se falhar, tenta com sudo (fallback)
+	out, err = exec.Command("sudo", "docker", "ps", "--format", "{{.Names}}|{{.Image}}").CombinedOutput()
 	if err != nil {
 		return false
 	}
-	return strings.Contains(string(out), "ollama")
+
+	output := strings.ToLower(string(out))
+	return strings.Contains(output, "ollama") || strings.Contains(output, "alpine/ollama")
 }
 
 func isPortInUse(port int) bool {
