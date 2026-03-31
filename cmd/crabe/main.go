@@ -7,6 +7,7 @@ import (
 	"github.com/Gabrielfernandes7/crabe/internal/doctor"
 	"github.com/Gabrielfernandes7/crabe/internal/initcmd"
 	"github.com/Gabrielfernandes7/crabe/internal/install"
+	"github.com/Gabrielfernandes7/crabe/internal/setup"
 	"github.com/Gabrielfernandes7/crabe/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -24,6 +25,7 @@ func init() {
 	rootCmd.AddCommand(doctor.NewDoctorCmd())
 	rootCmd.AddCommand(initcmd.NewInitCmd())
 	rootCmd.AddCommand(install.NewInstallCmd())
+	rootCmd.AddCommand(setup.NewSetupCmd())
 }
 
 func main() {
