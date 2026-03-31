@@ -24,7 +24,7 @@ func NewInitCmd() *cobra.Command {
 }
 
 func RunInit(force bool) {
-	ui.Title("🦀 Crabe Init - Configurando ambiente")
+	ui.Title("Crabe Init - Configurando ambiente")
 
 	ui.Section("Verificando ambiente")
 	runDoctorChecks()
