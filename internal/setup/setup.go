@@ -2,157 +2,305 @@ package setup
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/Gabrielfernandes7/crabe/internal/ui"
 	"github.com/spf13/cobra"
 )
 
+type SystemState struct {
+	OpenClawInstalled bool
+	OllamaRunning     bool
+	Models            []string
+}
+
 func NewSetupCmd() *cobra.Command {
 	var force bool
 	var startNow bool
+	var model string
 
 	cmd := &cobra.Command{
 		Use:   "setup",
-		Short: "Instala e configura o OpenClaw",
-		Long:  `Clona o repositório do OpenClaw, configura diretórios e variáveis de ambiente.`,
+		Short: "Instala e configura OpenClaw + Ollama automaticamente",
 		Run: func(cmd *cobra.Command, args []string) {
-			RunSetup(force, startNow)
+			RunSetup(force, startNow, model)
 		},
 	}
 
-	cmd.Flags().BoolVarP(&force, "force", "f", false, "Força a reinstalação")
-	cmd.Flags().BoolVarP(&startNow, "start", "s", false, "Inicia automaticamente após a instalação")
+	cmd.Flags().BoolVarP(&force, "force", "f", false, "Força reinstalação")
+	cmd.Flags().BoolVarP(&startNow, "start", "s", false, "Inicia serviços automaticamente")
+	cmd.Flags().StringVarP(&model, "model", "m", "", "Modelo preferido")
+
 	return cmd
 }
 
-func RunSetup(force, autoStart bool) {
-	ui.Title("🦀 Crabe Setup - Instalando OpenClaw")
+func RunSetup(force, autoStart bool, preferredModel string) {
+	ui.Title("Crabe Setup")
 
-	ui.Section("Verificando dependências")
-	if err := checkDependencies(); err != nil {
-		return
-	}
+	state := preflight()
 
-	installDir := filepath.Join(os.Getenv("HOME"), ".openclaw")
-
-	ui.Section("OpenClaw Repository")
-	if err := cloneOrUpdateOpenClaw(installDir, force); err != nil {
-		return
-	}
-
-	ui.Section("Configurando ambiente")
-	if err := setupDirectoriesAndEnv(installDir); err != nil {
-		return
-	}
-
-	ui.Success("✅ OpenClaw instalado e configurado com sucesso!")
-
-	if autoStart || askToStart() {
-		ui.Section("Iniciando serviços")
-		startOpenClaw(installDir)
-	} else {
-		ui.Info("Você pode iniciar depois com: crabe start")
-	}
-
-	ui.Info(fmt.Sprintf("📂 OpenClaw instalado em: %s", installDir))
-}
-
-func checkDependencies() error {
-	deps := []string{"git", "docker", "curl"}
-	for _, dep := range deps {
-		if _, err := exec.LookPath(dep); err != nil {
-			ui.Error(fmt.Sprintf("Dependência não encontrada: %s", dep))
-			ui.Info("Instale as dependências e tente novamente.")
-			return fmt.Errorf("missing dependency")
+	if force || !state.OpenClawInstalled {
+		ui.Section("Instalação do OpenClaw")
+		if err := installOpenClaw(); err != nil {
+			ui.Error(fmt.Sprintf("Erro ao instalar OpenClaw: %v", err))
+			return
 		}
-		ui.Success(fmt.Sprintf("%s OK", dep))
+	} else {
+		ui.Success("OpenClaw já instalado")
 	}
-	return nil
+
+	if !state.OllamaRunning {
+		ui.Section("Ollama")
+		ui.Error("Ollama não está rodando via Docker")
+		ui.Info("Execute: docker compose up -d")
+		return
+	}
+
+	models := state.Models
+
+	if len(models) == 0 {
+		ui.Warning("Nenhum modelo encontrado. Baixando modelo padrão...")
+		if err := pullModel(preferredModel); err != nil {
+			ui.Error("Falha ao baixar modelo")
+			return
+		}
+		models = listOllamaModels()
+	}
+
+	model := chooseModel(models, preferredModel)
+
+	ui.Section("Configuração")
+	if err := configureOpenClaw(model, force); err != nil {
+		ui.Error(fmt.Sprintf("Erro ao configurar OpenClaw: %v", err))
+		return
+	}
+
+	ui.Section("Gateway")
+	if err := configureGateway(); err != nil {
+		ui.Error(fmt.Sprintf("Erro ao configurar gateway: %v", err))
+		return
+	}
+
+	ui.Section("Validação final")
+	verify()
+
+	if autoStart {
+		startServices()
+	}
+
+	ui.Title("Ambiente pronto")
+	ui.Success(fmt.Sprintf("Modelo ativo: %s", model))
 }
 
-func cloneOrUpdateOpenClaw(installDir string, force bool) error {
-	repoURL := "https://github.com/openclaw/openclaw.git"
+func preflight() SystemState {
+	ui.Section("Preflight")
 
-	if _, err := os.Stat(installDir); err == nil {
-		if !force {
-			ui.Warning("OpenClaw já está instalado. Use --force para reinstalar.")
+	state := SystemState{}
+
+	if _, err := exec.LookPath("openclaw"); err == nil {
+		ui.Success("OpenClaw encontrado")
+		state.OpenClawInstalled = true
+	} else {
+		ui.Warning("OpenClaw não instalado")
+	}
+
+	state.OllamaRunning = checkOllamaRunning()
+	state.Models = listOllamaModels()
+
+	return state
+}
+
+func checkOllamaRunning() bool {
+	out, err := exec.Command("docker", "ps", "--format", "{{.Names}} {{.Image}}").Output()
+	if err != nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(string(out)), "ollama")
+}
+
+func installOpenClaw() error {
+	ui.Info("Instalando OpenClaw via install.sh...")
+
+	cmd := exec.Command("bash", "-c", "curl -fsSL https://install.openclaw.ai | bash")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
+}
+
+func listOllamaModels() []string {
+	cmd := exec.Command("docker", "exec", "ollama", "ollama", "list")
+	out, err := cmd.Output()
+
+	if err != nil {
+		out, err = exec.Command("ollama", "list").Output()
+		if err != nil {
 			return nil
 		}
-		ui.Info("Atualizando repositório existente...")
-		return exec.Command("git", "-C", installDir, "pull").Run()
 	}
 
-	ui.Info("Clonando OpenClaw...")
-	return exec.Command("git", "clone", repoURL, installDir).Run()
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	var models []string
+
+	for i := 1; i < len(lines); i++ {
+		fields := strings.Fields(lines[i])
+		if len(fields) > 0 {
+			models = append(models, fields[0])
+		}
+	}
+
+	return models
 }
 
-func setupDirectoriesAndEnv(installDir string) error {
-	configDir := filepath.Join(installDir, "config") // ou $HOME/.openclaw/config
-	workspaceDir := filepath.Join(installDir, "workspace")
-
-	os.MkdirAll(configDir, 0755)
-	os.MkdirAll(workspaceDir, 0755)
-
-	ui.Success("Diretórios criados")
-
-	envFile := filepath.Join(installDir, ".env")
-	envExample := filepath.Join(installDir, ".env.example")
-
-	// Copia .env.example se não existir
-	if _, err := os.Stat(envFile); os.IsNotExist(err) && fileExists(envExample) {
-		copyFile(envExample, envFile)
-		ui.Success(".env criado a partir do .env.example")
+func pullModel(preferred string) error {
+	model := preferred
+	if model == "" {
+		model = "qwen2.5-coder:7b"
 	}
 
-	// Adiciona / atualiza variáveis
-	appendEnvVariables(envFile, configDir, workspaceDir)
+	ui.Info(fmt.Sprintf("Baixando modelo %s...", model))
+
+	cmd := exec.Command("docker", "exec", "ollama", "ollama", "pull", model)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
+}
+
+func chooseModel(models []string, preferred string) string {
+	if preferred != "" {
+		for _, m := range models {
+			if m == preferred {
+				return preferred
+			}
+		}
+	}
+	return models[0]
+}
+
+func configureOpenClaw(model string, force bool) error {
+	ui.Info("Configurando OpenClaw (modo não interativo)...")
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	configDir := filepath.Join(home, ".openclaw")
+	configPath := filepath.Join(configDir, "openclaw.json")
+	backupPath := configPath + ".bak"
+
+	_ = os.MkdirAll(configDir, 0755)
+
+	// Backup se já existir
+	if _, err := os.Stat(configPath); err == nil {
+		if !force {
+			ui.Warning("Configuração já existe. Use --force para sobrescrever.")
+			return nil
+		}
+
+		ui.Info("Fazendo backup da configuração atual...")
+		data, _ := os.ReadFile(configPath)
+		_ = os.WriteFile(backupPath, data, 0644)
+	}
+
+	config := fmt.Sprintf(`{
+	"models": {
+		"default": "ollama/%s"
+	},
+	"providers": {
+		"ollama": {
+		"baseUrl": "http://localhost:11434"
+		}
+	}
+	}`, model)
+
+	err = os.WriteFile(configPath, []byte(config), 0644)
+	if err != nil {
+		return err
+	}
+
+	ui.Success("Configuração aplicada com sucesso")
 
 	return nil
 }
 
-func appendEnvVariables(envFile, configDir, workspaceDir string) {
-	content := fmt.Sprintf(`
-# Configurado automaticamente pelo Crabe
-OPENCLAW_CONFIG_DIR=%s
-OPENCLAW_WORKSPACE_DIR=%s
-`, configDir, workspaceDir)
+func configureGateway() error {
+	ui.Info("Instalando serviço do gateway...")
 
-	f, _ := os.OpenFile(envFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	f.WriteString(content)
-	f.Close()
+	installCmd := exec.Command("openclaw", "gateway", "install")
+	installCmd.Stdout = os.Stdout
+	installCmd.Stderr = os.Stderr
 
-	ui.Success("Variáveis de ambiente configuradas")
+	if err := installCmd.Run(); err != nil {
+		ui.Warning("Falha ao instalar via systemd. Tentando modo fallback...")
+	}
+
+	ui.Info("Iniciando gateway...")
+
+	startCmd := exec.Command("openclaw", "gateway", "start")
+	startCmd.Stdout = os.Stdout
+	startCmd.Stderr = os.Stderr
+
+	if err := startCmd.Run(); err != nil {
+		return fmt.Errorf("falha ao iniciar gateway: %w", err)
+	}
+
+	return waitGateway()
 }
 
-func startOpenClaw(installDir string) {
-	ui.Info("Subindo containers...")
+func waitGateway() error {
+	ui.Info("Aguardando gateway subir na porta 18789...")
 
-	cmd := exec.Command("docker", "compose", "up", "-d", "--build")
-	cmd.Dir = installDir
+	for i := 0; i < 10; i++ {
+		if isPortOpen("127.0.0.1:18789") {
+			ui.Success("Gateway está ativo")
+			return nil
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	return fmt.Errorf("gateway não respondeu na porta 18789")
+}
+
+func isPortOpen(addr string) bool {
+	conn, err := net.DialTimeout("tcp", addr, 1*time.Second)
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
+}
+
+func verify() {
+	run("openclaw status")
+	run("openclaw models list")
+	run("ollama list")
+}
+
+func run(command string) {
+	parts := strings.Split(command, " ")
+	cmd := exec.Command(parts[0], parts[1:]...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	_ = cmd.Run()
+}
+
+func startServices() {
+	ui.Info("Subindo Docker Compose...")
+
+	cmd := exec.Command("docker", "compose", "up", "-d")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		ui.Error("Falha ao subir os containers")
+		ui.Error("Erro ao subir serviços")
 	} else {
-		ui.Success("OpenClaw iniciado com sucesso!")
+		ui.Success("Serviços iniciados")
 	}
-}
-
-func askToStart() bool {
-	// Podemos melhorar isso depois com prompt interativo
-	return false // por enquanto desativado, usamos a flag --start
-}
-
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
-}
-
-func copyFile(src, dst string) error {
-	data, _ := os.ReadFile(src)
-	return os.WriteFile(dst, data, 0644)
 }
