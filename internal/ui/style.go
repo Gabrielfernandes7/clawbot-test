@@ -46,27 +46,27 @@ func Title(text string) {
 
 // Success — mensagem de sucesso com check
 func Success(msg string, args ...any) {
-	fmt.Println(success.Render("✅ " + fmt.Sprintf(msg, args...)))
+	fmt.Println(success.Render(fmt.Sprintf(msg, args...)))
 }
 
 // Error — mensagem de erro
 func Error(msg string, args ...any) {
-	fmt.Println(error.Render("❌ " + fmt.Sprintf(msg, args...)))
+	fmt.Println(error.Render(fmt.Sprintf(msg, args...)))
 }
 
 // Info — informação neutra
 func Info(msg string, args ...any) {
-	fmt.Println(info.Render("ℹ️  " + fmt.Sprintf(msg, args...)))
+	fmt.Println(info.Render(fmt.Sprintf(msg, args...)))
 }
 
 // Highlight — destaque (usado em status, modelo atual, etc.)
 func Highlight(msg string, args ...any) {
-	fmt.Println(primary.Render("➜  " + fmt.Sprintf(msg, args...)))
+	fmt.Println(primary.Render(fmt.Sprintf(msg, args...)))
 }
 
 // Warning
 func Warning(msg string, args ...any) {
-	fmt.Println(warning.Render("⚠️  " + fmt.Sprintf(msg, args...)))
+	fmt.Println(warning.Render(fmt.Sprintf(msg, args...)))
 }
 
 // Section — separa seções (muito usado no Claude Code)
