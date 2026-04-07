@@ -2,9 +2,17 @@ package initcmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/Gabrielfernandes7/crabe/internal/setup"
 	"github.com/Gabrielfernandes7/crabe/internal/ui"
 	"github.com/spf13/cobra"
-	"os/exec"
+)
+
+const (
+	contextDir  = ".crabe"
+	contextFile = "context.md"
 )
 
 func NewInitCmd() *cobra.Command {
@@ -12,68 +20,107 @@ func NewInitCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Inicializa o Crabe e o OpenClaw no projeto atual",
-		Long:  `Instala e configura tudo o que é necessário para rodar o OpenClaw localmente.`,
+		Short: "Inicializa o Crabe no projeto atual",
+		Long:  "Cria o contexto local (.crabe/) e prepara o ambiente com OpenClaw + Ollama automaticamente.",
 		Run: func(cmd *cobra.Command, args []string) {
 			RunInit(force)
 		},
 	}
 
-	cmd.Flags().BoolVarP(&force, "force", "f", false, "Força a reinicialização")
+	cmd.Flags().BoolVarP(&force, "force", "f", false, "Força reinicialização do contexto")
+
 	return cmd
 }
 
 func RunInit(force bool) {
-	ui.Title("Crabe Init - Configurando ambiente")
+	ui.Title("Crabe Init")
 
-	ui.Section("Verificando ambiente")
-	runDoctorChecks()
+	// 1. Detectar se já existe contexto
+	if contextExists() && !force {
+		ui.Warning("Projeto já inicializado (.crabe encontrado)")
+		ui.Info("Use --force para recriar")
+		return
+	}
 
-	ui.Section("Instalando dependências")
-	if !isOpenClawInstalled() || force {
-		ui.Info("OpenClaw não encontrado. Iniciando instalação...")
-		installOpenClaw()
+	// 2. Criar estrutura local
+	ui.Section("Contexto do projeto")
+	if err := createContext(force); err != nil {
+		ui.Error("Erro ao criar contexto: %v", err)
+		return
+	}
+
+	// 3. Verificar ambiente (rápido)
+	ui.Section("Ambiente")
+	state := setup.RunPreflight()
+
+	needsSetup := !state.DockerRunning || !state.OpenClawInstalled
+
+	if needsSetup {
+		ui.Warning("Ambiente incompleto detectado")
+		ui.Info("Executando setup automático...")
+		setup.RunSetup(false)
 	} else {
-		ui.Success("OpenClaw já está instalado")
+		ui.Success("Ambiente já pronto")
 	}
 
-	ui.Section("Configurando projeto atual")
-	setupProjectContext()
+	// 4. Mensagem final
+	ui.Title("Projeto pronto")
 
-	ui.Success("✅ Crabe inicializado com sucesso!")
-	ui.Info("Agora você pode usar:")
-	ui.Info("   crabe status     → ver status dos serviços")
-	ui.Info("   crabe start      → subir os serviços")
+	ui.Success("Crabe inicializado neste diretório")
+
 	fmt.Println()
-	ui.Info("Acesse: http://localhost:3000")
+	ui.Info("Próximos passos:")
+	ui.Info("  crabe start      → subir serviços")
+	ui.Info("  crabe status     → verificar status")
+	ui.Info("  crabe doctor     → diagnóstico")
+	fmt.Println()
+	ui.Info("Web UI: http://localhost:3000")
 }
 
-// Funções auxiliares
-func runDoctorChecks() {
-	// Podemos chamar partes do doctor aqui no futuro
-	fmt.Println("   • Docker → OK")
-	fmt.Println("   • Ollama container → verificando...")
+func contextExists() bool {
+	_, err := os.Stat(contextDir)
+	return err == nil
 }
 
-func isOpenClawInstalled() bool {
-	// Verifica se o gateway ou openclaw já existe
-	_, err := exec.LookPath("openclaw")
-	if err == nil {
-		return true
+func createContext(force bool) error {
+	if force {
+		_ = os.RemoveAll(contextDir)
 	}
-	// Verificar se existe o diretório ou container
-	return false // por enquanto
+
+	if err := os.MkdirAll(contextDir, 0755); err != nil {
+		return err
+	}
+
+	path := filepath.Join(contextDir, contextFile)
+
+	if _, err := os.Stat(path); err == nil && !force {
+		return nil
+	}
+
+	content := defaultContext()
+
+	return os.WriteFile(path, []byte(content), 0644)
 }
 
-func installOpenClaw() {
-	ui.Warning("Instalação do OpenClaw ainda em desenvolvimento...")
-	// Aqui vamos chamar o script setup-openclaw.sh por enquanto
-	// ou implementar diretamente em Go
-	fmt.Println("   → Executando setup-openclaw.sh (temporário)")
-	// exec.Command("bash", "scripts/setup-openclaw.sh").Run()
-}
+func defaultContext() string {
+	return 
+		`# 🦀 Crabe Context
 
-func setupProjectContext() {
-	fmt.Println("   📁 Criando contexto do projeto atual...")
-	// Criar pasta .crabe, context.md, etc.
-}
+		Descreva aqui o contexto do seu projeto para melhorar a qualidade das respostas da IA.
+
+		## Projeto
+		- Nome:
+		- Descrição:
+
+		## Stack
+		- Backend:
+		- Frontend:
+		- Infra:
+
+		## Objetivo
+		Descreva o que você quer construir ou melhorar.
+
+		## Observações
+		Qualquer detalhe relevante para o assistente.
+		`
+	}
