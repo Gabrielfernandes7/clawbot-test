@@ -1,130 +1,154 @@
 # Crabe 🦀
 
 <p align="center">
-  <img src="./docs/clawbot-icon.png" width="125" height="125">
+  <img src="./docs/clawbot-icon.png" width="125" height="125" alt="Crabe icon">
 </p>
 
-Repositório de testes para rodar **OpenClaw** 100% local usando Ollama + Docker.
+**CLI moderna em Go** para rodar **OpenClaw + Ollama + Docker** 100% local.
 
 **Objetivo principal:**  
-Entrar em **qualquer pasta** do seu computador e digitar `crabe init` para ter um agente inteligente trabalhando exatamente naquela pasta (lendo arquivos, entendendo o projeto, sugerindo melhorias, editando código, etc.).
+Entre em **qualquer pasta** do seu computador e rode `crabe init`.  
+Pronto. Você terá um agente inteligente trabalhando exatamente no contexto daquele projeto (lendo arquivos, entendendo o código, sugerindo melhorias, editando, criando testes, etc.).
 
 ---
 
-## Como usar (Fluxo Recomendado)
+## Como instalar (uma única vez)
 
-### 1. Primeira vez (configuração inicial)
+### Opção recomendada (com Makefile)
 
 ```bash
-chmod +x /scripts/setup.sh
+git clone https://github.com/Gabrielfernandes7/crabe.git
+cd crabe
+
+# Compila e instala o binário Go
+make install
 ```
 
-### 2. Uso diário (o mais importante)
+Isso compila o projeto em Go e cria o comando `crabe` em `~/.local/bin/crabe`.
+
+### Alternativa manual
 
 ```bash
-# 1. Entre na pasta do projeto que você quer trabalhar
-cd ~/Documentos/meu-projeto
-# ou qualquer outra pasta:
-# cd /caminho/para/qualquer/projeto
+cd crabe
+go build -o crabe ./cmd/crabe
+sudo cp crabe /usr/local/bin/   # ou cp para ~/.local/bin/
+chmod +x /usr/local/bin/crabe
+```
 
-# 2. Inicie o agente
+---
+
+## Como usar (Fluxo diário)
+
+```bash
+# 1. Entre na pasta do projeto que deseja trabalhar
+cd ~/Documentos/meu-projeto
+# ou qualquer outra pasta do seu computador
+
+# 2. Inicialize o agente
 crabe init
 ```
 
-**Alternativa rápida** (se preferir um único comando):
+Após o `init`, o OpenClaw + Ollama estarão configurados no contexto da pasta atual.
+
+Você pode interagir com o agente usando linguagem natural:
+- "entenda este projeto"
+- "liste os arquivos desta pasta"
+- "sugira melhorias no código"
+- "crie um teste para a função X"
+- "qual modelo você está usando?"
+
+---
+
+## Comandos disponíveis
+
+| Comando              | Descrição                                      |
+|----------------------|------------------------------------------------|
+| `crabe init`         | Inicializa o agente no projeto atual           |
+| `crabe init --force` | Força reinicialização                          |
+| `crabe doctor`       | Diagnóstico do sistema (Docker, Ollama, etc.)  |
+| `crabe status`       | Mostra status dos serviços e modelo atual      |
+| `crabe --help`       | Lista todos os comandos e opções               |
+
+---
+
+## Modelos recomendados (para código)
+
+- **`qwen2.5-coder:7b`** → **Recomendado** (melhor equilíbrio)
+- **`qwen2.5-coder:14b`** → Mais inteligente (exige mais RAM)
+
+**Como mudar o modelo padrão:**  
+Em breve será possível com `crabe model set <nome>`. Por enquanto, a configuração está sendo migrada para arquivo em `~/.crabe/config.json`.
+
+---
+
+## Desenvolvimento (para quem contribui)
 
 ```bash
-~/Documentos/clawbot-test/start-crabe.sh
+make build          # compila o binário
+make install        # compila e instala
+make doctor         # roda crabe doctor
+make init           # roda crabe init
+make clean          # limpa binários
 ```
 
----
-
-## Comandos principais do Crabe
-
-- `crabe init` → **Inicia o agente no contexto da pasta atual** (comando recomendado)
-- `crabe` → Inicia o agente (sem inicialização explícita)
-- `crabe status` → Mostra status do agente e modelo atual
-
-### Comandos úteis dentro do Crabe
-
-- `status`
-- `qual modelo você está usando?`
-- `liste os arquivos desta pasta`
-- `entenda este projeto e me diga o que ele faz`
-- `sugira melhorias no código`
-- `crie um teste para a função X`
-- `analise o README.md`
+Veja o `Makefile` para mais comandos.
 
 ---
 
-## Modelos recomendados (SLM para código)
+## Estrutura atual do projeto (durante migração)
 
-- `qwen2.5-coder:7b` → **Recomendado** (melhor equilíbrio qualidade/velocidade/RAM)
-- `qwen2.5-coder:14b` → Mais inteligente (usa mais RAM)
-- `glm-4.7-flash` → Já está baixado (uso atual)
-
-**Como trocar o modelo padrão:**  
-Edite o arquivo `~/.local/bin/crabe` e altere a linha `--model "ollama/glm-4.7-flash"`.
-
----
-
-## Estrutura final
-
-```md
+```
 crabe/
-├── cli/
-│   └── crabe.sh
-├── scripts/
-│   ├── setup.sh
-│   ├── start.sh
-│   ├── doctor.sh
-│   └── stop.sh
-├── docker/
-│   └── docker-compose.yml
-├── config/
-│   └── crabe.config.json
-├── core/
-│   └── context-resolver.sh
+├── cmd/crabe/          # Entry point da CLI em Go
+├── internal/           # Código interno (ui, doctor, initcmd, etc.)
+├── scripts/            # Scripts auxiliares (setup mínimo)
+├── docker/             # docker-compose.yml
 ├── docs/
+├── go.mod
+├── Makefile
 └── README.md
 ```
+
+Scripts antigos em `cli/` e alguns em `scripts/` estão sendo gradualmente substituídos por código Go.
 
 ---
 
 ## Dicas importantes
 
-- **Nunca rode os scripts de setup com `sudo`** (exceto `./fix-crabe.sh` uma única vez).
-- Após rodar `./fix-crabe.sh`, feche e abra o terminal se o comando `crabe` ainda não for reconhecido.
-- O Gateway roda em background. Para parar: `pkill -f "openclaw gateway"`
-- Logs do gateway: `tail -f ~/.openclaw/gateway.log`
+- Não use `sudo` nos comandos normais.
+- O binário é um **single binary** em Go → mais rápido, seguro e fácil de distribuir.
+- Interface com cores e estilo moderno (usando Lipgloss).
+- Após mudanças no código Go, rode `make install` novamente.
 
 ---
 
 ## Troubleshooting
 
 - **"Comando 'crabe' não encontrado"**  
-  → Rode `./fix-crabe.sh` e depois feche/abra o terminal.
+  → Rode `make install` novamente e reinicie o terminal.
 
-- **Erro de permissão no Docker**  
-  → Rode `newgrp docker` ou adicione seu usuário ao grupo docker.
+- **Erro ao instalar**  
+  → Rode `make remove-old` e depois `make install`.
 
-- **Gateway não inicia**  
-  → Rode `pkill -f "openclaw gateway"` e depois `crabe init` novamente.
+- **Problemas com Docker**  
+  → Certifique-se de que seu usuário está no grupo `docker` (`newgrp docker` ou logout/login).
 
-- **Quer trocar de modelo**  
-  → Edite `~/.local/bin/crabe` e mude o nome do modelo (ex: `qwen2.5-coder:7b`).
+- **Gateway ou Ollama não inicia**  
+  → Rode `crabe doctor` para diagnosticar.
 
 ---
 
-**Pronto!**  
-Agora basta entrar na pasta do seu projeto e digitar:
+**Pronto!**
+
+Agora é só entrar na pasta do seu projeto e digitar:
 
 ```bash
 crabe init
 ```
 
-## Libs
+---
 
-- https://github.com/spf13/cobra
+## Bibliotecas utilizadas
 
-- https://github.com/charmbracelet/lipgloss
+- [spf13/cobra](https://github.com/spf13/cobra) — Framework de CLI
+- [charmbracelet/lipgloss](https://github.com/charmbracelet/lipgloss) — Estilização bonita do terminal
