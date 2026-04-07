@@ -83,7 +83,6 @@ Depois disso, converse com o agente usando linguagem natural dentro do contexto 
 
 - **`qwen2.5-coder:7b`** → **Melhor equilíbrio** (recomendado)
 - **`qwen2.5-coder:14b`** → Mais capaz (mais RAM)
-- **`glm-4.7-flash`** → Rápido para testes
 
 ---
 
@@ -128,22 +127,3 @@ crabe init
 
 - [spf13/cobra](https://github.com/spf13/cobra)
 - [charmbracelet/lipgloss](https://github.com/charmbracelet/lipgloss)
-
----
-
-### Próximos passos sugeridos para você:
-
-1. **Grave um GIF curto** (5–10 segundos) mostrando:
-   - `make install`
-   - `crabe doctor`
-   - `crabe init`
-   - Saída colorida no terminal
-
-   Ferramentas fáceis: **Terminalizer**, **asciinema + asciinema2gif**, ou simplesmente gravar a tela com Kap (macOS) / Peek (Linux).
-
-2. Suba o GIF para https://imgur.com ou para a pasta `docs/` e substitua o link `https://i.imgur.com/XXXXXXX.gif`.
-
-Quer que eu ajuste algo (mais badges, deixar mais curto, adicionar seção de roadmap, ou badges de GitHub Actions)?  
-Ou prefere que eu gere um `.goreleaser.yml` básico para facilitar releases automáticas no futuro?  
-
-Me diga como quer continuar! 🦀
