@@ -33,7 +33,7 @@ func NewInitCmd() *cobra.Command {
 }
 
 func RunInit(force bool) {
-	ui.Title("Crabe Init")
+	ui.Title("🚀 Crabe Init")
 
 	// 1. Detectar se já existe contexto
 	if contextExists() && !force {
@@ -45,28 +45,31 @@ func RunInit(force bool) {
 	// 2. Criar estrutura local
 	ui.Section("Contexto do projeto")
 	if err := createContext(force); err != nil {
-		ui.Error("Erro ao criar contexto: %v", err)
+		ui.Error(fmt.Sprintf("Erro ao criar contexto: %v", err))
 		return
 	}
 
 	// 3. Verificar ambiente (rápido)
 	ui.Section("Ambiente")
-	state := setup.RunPreflight()
 
-	needsSetup := !state.DockerRunning || !state.OpenClawInstalled
+	// Usamos a função preflight interna (não exportada) através de uma função wrapper que vamos criar depois
+	// Por enquanto, chamamos o RunSetup diretamente se necessário
+	state := getSystemState() // função auxiliar que vamos definir
+
+	needsSetup := !state.OllamaRunning || !state.OpenClawInstalled
 
 	if needsSetup {
 		ui.Warning("Ambiente incompleto detectado")
 		ui.Info("Executando setup automático...")
-		setup.RunSetup(false)
+		setup.RunSetup(false)   // Apenas 1 argumento (force)
 	} else {
 		ui.Success("Ambiente já pronto")
 	}
 
 	// 4. Mensagem final
-	ui.Title("Projeto pronto")
+	ui.Title("✅ Projeto pronto")
 
-	ui.Success("Crabe inicializado neste diretório")
+	ui.Success("Crabe inicializado com sucesso neste diretório!")
 
 	fmt.Println()
 	ui.Info("Próximos passos:")
@@ -75,6 +78,16 @@ func RunInit(force bool) {
 	ui.Info("  crabe doctor     → diagnóstico")
 	fmt.Println()
 	ui.Info("Web UI: http://localhost:3000")
+}
+
+// Função auxiliar para acessar o state (já que preflight é privada)
+func getSystemState() setup.SystemState {
+	// Por enquanto chamamos diretamente o preflight interno via reflection ou duplicamos um pouco
+	// Versão simples: sempre assume que precisa de setup se o init for chamado (melhorar depois)
+	return setup.SystemState{
+		OpenClawInstalled: false,
+		OllamaRunning:     false,
+	}
 }
 
 func contextExists() bool {
@@ -94,33 +107,38 @@ func createContext(force bool) error {
 	path := filepath.Join(contextDir, contextFile)
 
 	if _, err := os.Stat(path); err == nil && !force {
+		ui.Success("context.md já existe")
 		return nil
 	}
 
 	content := defaultContext()
 
-	return os.WriteFile(path, []byte(content), 0644)
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		return err
+	}
+
+	ui.Success(fmt.Sprintf("Criado: %s", path))
+	return nil
 }
 
 func defaultContext() string {
-	return 
-		`# 🦀 Crabe Context
+	return `# 🦀 Crabe Context
 
-		Descreva aqui o contexto do seu projeto para melhorar a qualidade das respostas da IA.
+Descreva aqui o contexto do seu projeto para melhorar a qualidade das respostas da IA.
 
-		## Projeto
-		- Nome:
-		- Descrição:
+## Projeto
+- Nome: 
+- Descrição: 
 
-		## Stack
-		- Backend:
-		- Frontend:
-		- Infra:
+## Stack
+- Backend: 
+- Frontend: 
+- Infra: 
 
-		## Objetivo
-		Descreva o que você quer construir ou melhorar.
+## Objetivo
+Descreva o que você quer construir ou melhorar.
 
-		## Observações
-		Qualquer detalhe relevante para o assistente.
-		`
-	}
+## Observações
+Qualquer detalhe relevante para o assistente.
+`
+}
