@@ -12,21 +12,40 @@
     <img src="https://img.shields.io/github/v/release/Gabrielfernandes7/crabe?color=success" alt="Latest Release">
   </a>
   <img src="https://img.shields.io/badge/CLI%20em%20Go-brightgreen" alt="Built with Go">
-  
+  <img src="https://img.shields.io/badge/100%25%20Local-blue" alt="100% Local">
 </p>
 
-**CLI moderna em Golang** para rodar **OpenClaw + Ollama + Docker** 100% local.
+**Crabe** é uma **CLI moderna em Go** que simplifica drasticamente o uso de agentes de IA locais.
 
-**Objetivo principal:**  
-Entre em **qualquer pasta** do seu computador e rode `crabe init`.  
-Pronto. Você terá um agente inteligente trabalhando exatamente no contexto daquele projeto.
+### O problema que resolvemos
+Configurar um agente de IA poderoso (como o **OpenClaw**) com **Ollama** e **Docker** para trabalhar no contexto do seu projeto atual costuma ser complicado: você precisa gerenciar Docker Compose, baixar modelos, configurar volumes, portas, permissões e ferramentas manualmente. Isso gera muita fricção toda vez que você troca de projeto.
+
+### A solução: Crabe
+Entre em **qualquer pasta** do seu computador e execute um único comando:
+
+```bash
+crabe init
+```
+
+Pronto. O Crabe cuida de toda a orquestração e você ganha um **agente de IA inteligente rodando 100% localmente**, entendendo perfeitamente o contexto do projeto atual.
+
+**Crabe não substitui o OpenClaw** — ele usa o OpenClaw como motor principal, mas adiciona a camada de **experiência do desenvolvedor (DX)** que estava faltando: instalação simples, diagnóstico automático, inicialização por projeto e interface bonita no terminal.
 
 ---
 
 ### Demo
 
 ![Crabe Demo](https://i.imgur.com/XXXXXXX.gif)  
-*(GIF demonstrando `crabe doctor` e `crabe init` em ação – substitua pelo GIF real quando gravar)*
+*(Substitua pelo GIF real mostrando `crabe doctor`, `crabe init` e uma conversa com o agente)*
+
+---
+
+## Requisitos
+
+- **Docker** instalado e rodando
+- **Ollama** instalado (o Crabe faz o pull dos modelos recomendados)
+- Pelo menos 8 GB de RAM livre (16 GB+ recomendado para modelos maiores)
+- Linux / macOS (suporte a Windows em desenvolvimento)
 
 ---
 
@@ -40,15 +59,15 @@ cd crabe
 make install
 ```
 
-Isso compila o binário Go e instala o comando `crabe`.
+Isso compila o binário em Go e coloca o comando `crabe` no seu PATH.
 
-### Manual
+### Alternativa manual
 
 ```bash
 cd crabe
 go build -o crabe ./cmd/crabe
-cp crabe ~/.local/bin/
-chmod +x ~/.local/bin/crabe
+sudo mv crabe /usr/local/bin/
+chmod +x /usr/local/bin/crabe
 ```
 
 ---
@@ -56,70 +75,81 @@ chmod +x ~/.local/bin/crabe
 ## Como usar (Fluxo diário)
 
 ```bash
-# 1. Entre na pasta do projeto
-cd ~/Documentos/meu-projeto
+# 1. Entre na pasta do seu projeto
+cd ~/projetos/meu-app-nextjs
 
 # 2. Inicialize o agente
 crabe init
 ```
 
-Depois disso, converse com o agente usando linguagem natural dentro do contexto da pasta.
+Depois disso, o agente já estará pronto. Você pode conversar com ele em linguagem natural dentro daquela pasta (ele terá acesso aos arquivos, git, terminal, etc.).
+
+Para forçar uma reinicialização:
+```bash
+crabe init --force
+```
 
 ---
 
 ## Comandos principais
 
-| Comando                | Descrição                                              |
-|------------------------|--------------------------------------------------------|
-| `crabe init`           | Inicializa o agente no projeto atual                   |
-| `crabe init --force`   | Força reinicialização                                  |
-| `crabe doctor`         | Diagnóstico completo do sistema                        |
-| `crabe status`         | Status dos serviços e modelo atual                     |
-| `crabe --help`         | Lista todos os comandos e opções                       |
+| Comando                  | Descrição                                              |
+|--------------------------|--------------------------------------------------------|
+| `crabe init`             | Inicializa o agente no projeto atual                   |
+| `crabe init --force`     | Força a reinicialização (útil para mudanças)           |
+| `crabe doctor`           | Diagnóstico completo do ambiente (Docker, Ollama, etc.)|
+| `crabe status`           | Mostra serviços rodando e modelo em uso                |
+| `crabe version`          | Mostra a versão instalada                              |
+| `crabe --help`           | Lista todos os comandos e opções                       |
 
 ---
 
-## Modelos recomendados
+## Modelos recomendados (via Ollama)
 
-- **`qwen2.5-coder:7b`** → **Melhor equilíbrio** (recomendado)
-- **`qwen2.5-coder:14b`** → Mais capaz (mais RAM)
+- **`qwen2.5-coder:7b`** → **Melhor equilíbrio** performance × consumo (recomendado para a maioria)
+- **`qwen2.5-coder:14b`** → Mais inteligente e capaz (exige mais RAM)
+
+O Crabe faz o download automático do modelo escolhido durante o `init`.
 
 ---
 
 ## Desenvolvimento
 
 ```bash
-make build          # Compila o binário
-make install        # Compila e instala
-make doctor         # Executa crabe doctor
-make init           # Executa crabe init
-make clean          # Limpa binários
+make build      # Compila o binário
+make install    # Compila e instala
+make doctor     # Executa crabe doctor
+make init       # Executa crabe init no diretório atual
+make clean      # Remove binários gerados
 ```
 
 ---
 
 ## Tecnologias
 
-- **Go** + **Cobra** (estrutura de comandos)
-- **Lipgloss** (interface bonita no terminal)
-- OpenClaw + Ollama + Docker
+- **Go** + **Cobra** (CLI robusta)
+- **Lipgloss** (interface moderna e colorida no terminal)
+- **OpenClaw** + **Ollama** + **Docker** (tudo rodando localmente)
 
 ---
 
 ## Dicas e Troubleshooting
 
-- Rode `make install` sempre que alterar o código Go.
-- Problema com comando não encontrado? → `make remove-old && make install`
-- Erros no Docker? → Verifique se seu usuário está no grupo `docker`.
+- Sempre rode `make install` após alterar o código.
+- Comando não encontrado? Execute `make remove-old && make install`.
+- Problemas com Docker? Verifique se seu usuário está no grupo `docker` (`sudo usermod -aG docker $USER`).
+- Rode `crabe doctor` sempre que tiver algum erro.
 
 ---
 
-**Pronto!**  
-Agora é só entrar em qualquer pasta e digitar:
+**Pronto para começar?**
 
 ```bash
+cd seu-projeto
 crabe init
 ```
+
+Agora você tem um agente de IA local trabalhando **exatamente** onde você precisa.
 
 ---
 
@@ -127,3 +157,13 @@ crabe init
 
 - [spf13/cobra](https://github.com/spf13/cobra)
 - [charmbracelet/lipgloss](https://github.com/charmbracelet/lipgloss)
+
+---
+
+
+**Contribuições são bem-vindas!**  
+Abra uma issue ou envie um Pull Request.
+
+## Licença
+
+Este projeto está licenciado sob a [Licença MIT](LICENSE).
