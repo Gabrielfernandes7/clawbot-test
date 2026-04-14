@@ -9,6 +9,7 @@ import (
 	"github.com/Gabrielfernandes7/crabe/internal/install"
 	"github.com/Gabrielfernandes7/crabe/internal/uninstall"
 	"github.com/Gabrielfernandes7/crabe/internal/setup"
+	"github.com/Gabrielfernandes7/crabe/internal/start"
 	"github.com/Gabrielfernandes7/crabe/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -28,6 +29,7 @@ func init() {
 	rootCmd.AddCommand(install.NewInstallCmd())
 	rootCmd.AddCommand(setup.NewSetupCmd())
 	rootCmd.AddCommand(uninstall.NewUninstallCmd())
+	rootCmd.AddCommand(start.NewStartCmd())
 }
 
 func main() {
